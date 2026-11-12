@@ -5,9 +5,3 @@
 allowBuilds:
   esbuild: true
   workerd: true
-
-# Temporary: make @cloudflare/vite-plugin 1.68 use the same miniflare/workerd as
-# wrangler. Windows Smart App Control blocks the older workerd binary.
-# Remove once @cloudflare/vite-plugin >= 1.69 (which pins this version) is installed.
-overrides:
-  '@cloudflare/vite-plugin>miniflare': 5.20261110.0-beta
