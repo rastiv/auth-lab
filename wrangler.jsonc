@@ -24,7 +24,8 @@
 	// Public config only; secrets go in .dev.vars locally and `wrangler secret put` in production.
 	// .dev.vars overrides these during local development.
 	"vars": {
-		"BETTER_AUTH_URL": "https://auth.rastiv.dev"
+		// Switch to https://auth.rastiv.dev once the custom domain is set up.
+		"BETTER_AUTH_URL": "https://auth-lab.rastiv-bg.workers.dev"
 	},
 	"observability": {
 		"enabled": true

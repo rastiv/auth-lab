@@ -28,7 +28,9 @@ Scope:
 
 ### Password hashing: PBKDF2, not scrypt
 
-Better-Auth's default `scrypt` can exceed the Workers free plan CPU limit (about 10 ms per request). Use a custom `password.hash` / `password.verify` based on WebCrypto PBKDF2 (`crypto.subtle`), which runs natively. Verify this in the first prototype by measuring sign-up/sign-in CPU time before building more on top.
+Better-Auth's default `scrypt` falls back to pure JS on Workers and can exceed the free plan CPU limit (about 10 ms per request). Use a custom `password.hash` / `password.verify` based on WebCrypto PBKDF2 (`crypto.subtle`), which runs natively.
+
+Measured in production (2026-11-12): PBKDF2-SHA256 costs about 15 ms CPU per 100k iterations; sign-up/sign-in take 17-25 ms CPU in total. The free plan did not reject these requests (20 parallel sign-ins all succeeded), but that is observed behaviour, not a guarantee. Decision: stay on the free plan with 100k iterations (OWASP recommends 600k) and watch Workers Logs for exceeded-CPU errors. Moving to Workers Paid means raising `ITERATIONS` in `worker/password.ts` and adding rehash-on-login for existing hashes (not implemented yet).
 
 ## Planned structure
 

@@ -3,8 +3,10 @@
 // CPU limit; crypto.subtle runs natively in workerd.
 
 const ALGORITHM = "pbkdf2-sha256";
-// Security vs CPU time trade-off: OWASP recommends 600k for SHA-256, but each
-// 100k costs roughly 25 ms locally. To be tuned against production CPU metrics.
+// Security vs CPU time trade-off: OWASP recommends 600k for SHA-256, but on
+// Cloudflare each 100k costs ~15 ms CPU (sign-in totals 17-25 ms). The free
+// plan's 10 ms limit is not strictly enforced per request, so 100k is a
+// deliberate compromise; on Workers Paid this can go to 600k.
 const ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 const KEY_BITS = 256;
