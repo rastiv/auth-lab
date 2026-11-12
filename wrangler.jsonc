@@ -17,6 +17,7 @@
 		{
 			"binding": "DB",
 			"database_name": "auth-lab",
+			"database_id": "ec38cd29-9300-4328-ae27-2ba2f1eb1bab",
 			"migrations_dir": "worker/db/migrations"
 		}
 	],

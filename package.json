@@ -13,7 +13,8 @@
 		"auth:generate": "auth generate --adapter drizzle --dialect sqlite --config worker/auth.ts --output worker/db/auth-schema.ts -y",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate:local": "wrangler d1 migrations apply DB --local",
-		"db:migrate:remote": "wrangler d1 migrations apply DB --remote"
+		"db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+		"db:studio": "drizzle-kit studio"
 	},
 	"dependencies": {
 		"better-auth": "1.7.21",
@@ -24,6 +25,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.69.0",
+		"@libsql/client": "^0.18.0",
 		"@types/node": "^24.19.2",
 		"@types/react": "^19.3.0",
 		"@types/react-dom": "^19.3.0",
