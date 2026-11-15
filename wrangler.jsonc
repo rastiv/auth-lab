@@ -29,12 +29,13 @@
 	// Declared here so `wrangler types` works without .dev.vars (e.g. in CI).
 	// Values: .dev.vars locally, `wrangler secret put` in production.
 	"secrets": {
-		"required": ["BETTER_AUTH_SECRET"]
+		"required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY"]
 	},
 	// Public config only; secrets never go here.
 	// .dev.vars overrides these during local development.
 	"vars": {
-		"BETTER_AUTH_URL": "https://auth.rastiv.dev"
+		"BETTER_AUTH_URL": "https://auth.rastiv.dev",
+		"EMAIL_FROM": "auth-lab <no-reply@mail.rastiv.dev>"
 	},
 	"observability": {
 		"enabled": true

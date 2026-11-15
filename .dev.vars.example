@@ -1,3 +1,5 @@
 # Copy to .dev.vars. Generate a secret with: openssl rand -base64 32
 BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=http://localhost:5173
+# Not used locally: in dev, emails are printed to the terminal instead of sent.
+RESEND_API_KEY=

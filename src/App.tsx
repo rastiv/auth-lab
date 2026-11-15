@@ -1,14 +1,24 @@
 import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 
-function App() {
-  const { data: session, isPending } = authClient.useSession()
+// Better-Auth redirects back with ?error=... when a verification link is invalid or expired.
+const verificationError = new URLSearchParams(window.location.search).get('error')
 
-  if (isPending) return <p>Loading...</p>
+function App() {
+  const { data: session, isPending, isRefetching } = authClient.useSession()
+
+  // While signed out, every session refetch (e.g. after sign-up) also reports
+  // isPending; only block the UI on the first load so forms keep their state.
+  if (isPending && !isRefetching) return <p>Loading...</p>
 
   return (
     <main>
       <h1>auth-lab</h1>
+      {verificationError && (
+        <p role="alert">
+          The verification link is invalid or has expired. Sign in to get a new one.
+        </p>
+      )}
       {session ? (
         <section>
           <p>
@@ -28,16 +38,27 @@ function App() {
 
 function SignUpForm() {
   const [error, setError] = useState<string>()
+  const [sentTo, setSentTo] = useState<string>()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
+    const email = String(form.get('email'))
     const { error } = await authClient.signUp.email({
       name: String(form.get('name')),
-      email: String(form.get('email')),
+      email,
       password: String(form.get('password')),
     })
     setError(error?.message)
+    setSentTo(error ? undefined : email)
+  }
+
+  if (sentTo) {
+    return (
+      <p>
+        Check your inbox: we sent a verification link to <strong>{sentTo}</strong>.
+      </p>
+    )
   }
 
   return (
@@ -62,7 +83,11 @@ function SignInForm() {
       email: String(form.get('email')),
       password: String(form.get('password')),
     })
-    setError(error?.message)
+    if (error?.status === 403) {
+      setError('Your email is not verified yet. We sent you a new verification link.')
+    } else {
+      setError(error?.message)
+    }
   }
 
   return (
