@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 
-// Better-Auth redirects back with ?error=... when a verification link is invalid or expired.
-const verificationError = new URLSearchParams(window.location.search).get('error')
+// Better-Auth redirects back with ?error=... when an email link is invalid or expired.
+const linkError = new URLSearchParams(window.location.search).get('error')
 
 function App() {
   const { data: session, isPending, isRefetching } = authClient.useSession()
@@ -14,10 +14,8 @@ function App() {
   return (
     <main>
       <h1>auth-lab</h1>
-      {verificationError && (
-        <p role="alert">
-          The verification link is invalid or has expired. Sign in to get a new one.
-        </p>
+      {linkError && (
+        <p role="alert">This link is invalid, expired, or already used. Request a new one.</p>
       )}
       {session ? (
         <section>
@@ -30,6 +28,7 @@ function App() {
         <>
           <SignUpForm />
           <SignInForm />
+          <MagicLinkForm />
         </>
       )}
     </main>
@@ -96,6 +95,37 @@ function SignInForm() {
       <input name="email" type="email" placeholder="Email" required />
       <input name="password" type="password" placeholder="Password" required />
       <button type="submit">Sign in</button>
+      {error && <p role="alert">{error}</p>}
+    </form>
+  )
+}
+
+function MagicLinkForm() {
+  const [error, setError] = useState<string>()
+  const [sentTo, setSentTo] = useState<string>()
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const email = String(new FormData(event.currentTarget).get('email'))
+    const { error } = await authClient.signIn.magicLink({ email, callbackURL: '/' })
+    setError(error?.message)
+    setSentTo(error ? undefined : email)
+  }
+
+  if (sentTo) {
+    return (
+      <p>
+        Check your inbox: we sent a sign-in link to <strong>{sentTo}</strong>. It expires in 5
+        minutes.
+      </p>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Sign in with a magic link</h2>
+      <input name="email" type="email" placeholder="Email" required />
+      <button type="submit">Email me a link</button>
       {error && <p role="alert">{error}</p>}
     </form>
   )

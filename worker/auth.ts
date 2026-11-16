@@ -2,8 +2,9 @@ import { env, waitUntil } from "cloudflare:workers";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 // The minimal build omits Kysely; Drizzle is our only database layer.
 import { betterAuth } from "better-auth/minimal";
+import { magicLink } from "better-auth/plugins/magic-link";
 import { db } from "./db";
-import { sendEmail, verificationEmail } from "./email";
+import { magicLinkEmail, sendEmail, verificationEmail } from "./email";
 import { hashPassword, verifyPassword } from "./password";
 
 export const auth = betterAuth({
@@ -24,6 +25,17 @@ export const auth = betterAuth({
       await sendEmail({ to: user.email, ...verificationEmail(url) });
     },
   },
+  plugins: [
+    magicLink({
+      // Only a hash is stored, so a leaked database can't be used to sign in.
+      storeToken: "hashed",
+      // Awaited (unlike verification emails): the response is the same for
+      // known and unknown addresses, so its timing reveals nothing.
+      sendMagicLink: async ({ email, url }) => {
+        await sendEmail({ to: email, ...magicLinkEmail(url) });
+      },
+    }),
+  ],
   advanced: {
     // Workers don't set X-Forwarded-For; rate limiting needs the real client IP.
     ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] },

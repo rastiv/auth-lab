@@ -31,6 +31,17 @@ export function verificationEmail(url: string): Omit<Email, "to"> {
   };
 }
 
+export function magicLinkEmail(url: string): Omit<Email, "to"> {
+  return {
+    subject: "Your sign-in link for auth-lab",
+    text: `Sign in to auth-lab by opening this link:
+${url}
+
+The link works once and expires in 5 minutes. If you didn't request it, ignore this email.`,
+    html: `<p>Sign in to auth-lab:</p><p><a href="${escapeHtml(url)}">Sign in</a></p><p>The link works once and expires in 5 minutes. If you didn't request it, ignore this email.</p>`,
+  };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
