@@ -10,6 +10,7 @@ declare global {
         container: HTMLElement,
         options: {
           sitekey: string
+          appearance: 'always' | 'execute' | 'interaction-only'
           callback: (token: string) => void
           'expired-callback': () => void
           'error-callback': () => void
@@ -53,6 +54,9 @@ export function TurnstileWidget({
         if (unmounted || !container.current || !window.turnstile) return
         widgetId = window.turnstile.render(container.current, {
           sitekey: import.meta.env.VITE_TURNSTILE_SITE_KEY,
+          // Every request is still verified; the widget only becomes visible
+          // when Cloudflare asks the visitor to click.
+          appearance: 'interaction-only',
           callback: onToken,
           'expired-callback': () => onToken(undefined),
           'error-callback': () => onToken(undefined),

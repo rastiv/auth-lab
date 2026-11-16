@@ -72,7 +72,7 @@ function SignUpForm() {
       <input name="password" type="password" placeholder="Password" minLength={8} required />
       {captcha.widget}
       <button type="submit" disabled={!captcha.token}>
-        Create account
+        {captcha.token ? 'Create account' : 'Verifying…'}
       </button>
       {error && <p role="alert">{error}</p>}
     </form>
@@ -107,7 +107,7 @@ function SignInForm() {
       <input name="password" type="password" placeholder="Password" required />
       {captcha.widget}
       <button type="submit" disabled={!captcha.token}>
-        Sign in
+        {captcha.token ? 'Sign in' : 'Verifying…'}
       </button>
       {error && <p role="alert">{error}</p>}
     </form>
@@ -147,7 +147,7 @@ function MagicLinkForm() {
       <input name="email" type="email" placeholder="Email" required />
       {captcha.widget}
       <button type="submit" disabled={!captcha.token}>
-        Email me a link
+        {captcha.token ? 'Email me a link' : 'Verifying…'}
       </button>
       {error && <p role="alert">{error}</p>}
     </form>
