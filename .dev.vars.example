@@ -3,3 +3,5 @@ BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=http://localhost:5173
 # Not used locally: in dev, emails are printed to the terminal instead of sent.
 RESEND_API_KEY=
+# Cloudflare's test secret: every token passes. Production uses the real one.
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA

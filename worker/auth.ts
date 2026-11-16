@@ -2,6 +2,7 @@ import { env, waitUntil } from "cloudflare:workers";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 // The minimal build omits Kysely; Drizzle is our only database layer.
 import { betterAuth } from "better-auth/minimal";
+import { captcha } from "better-auth/plugins/captcha";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { db } from "./db";
 import { magicLinkEmail, sendEmail, verificationEmail } from "./email";
@@ -26,6 +27,13 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    captcha({
+      provider: "cloudflare-turnstile",
+      secretKey: env.TURNSTILE_SECRET_KEY,
+      // Every endpoint that sends an email (spam, Resend quota, domain
+      // reputation) or runs PBKDF2 (CPU limit, password guessing).
+      endpoints: ["/sign-up/email", "/sign-in/email", "/sign-in/magic-link"],
+    }),
     magicLink({
       // Only a hash is stored, so a leaked database can't be used to sign in.
       storeToken: "hashed",

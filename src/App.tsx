@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
+import { useTurnstile } from './lib/use-turnstile'
 
 // Better-Auth redirects back with ?error=... when an email link is invalid or expired.
 const linkError = new URLSearchParams(window.location.search).get('error')
@@ -38,6 +39,7 @@ function App() {
 function SignUpForm() {
   const [error, setError] = useState<string>()
   const [sentTo, setSentTo] = useState<string>()
+  const captcha = useTurnstile()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -47,7 +49,9 @@ function SignUpForm() {
       name: String(form.get('name')),
       email,
       password: String(form.get('password')),
+      fetchOptions: { headers: captcha.headers },
     })
+    captcha.reset()
     setError(error?.message)
     setSentTo(error ? undefined : email)
   }
@@ -66,7 +70,10 @@ function SignUpForm() {
       <input name="name" placeholder="Name" required />
       <input name="email" type="email" placeholder="Email" required />
       <input name="password" type="password" placeholder="Password" minLength={8} required />
-      <button type="submit">Create account</button>
+      {captcha.widget}
+      <button type="submit" disabled={!captcha.token}>
+        Create account
+      </button>
       {error && <p role="alert">{error}</p>}
     </form>
   )
@@ -74,6 +81,7 @@ function SignUpForm() {
 
 function SignInForm() {
   const [error, setError] = useState<string>()
+  const captcha = useTurnstile()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -81,8 +89,11 @@ function SignInForm() {
     const { error } = await authClient.signIn.email({
       email: String(form.get('email')),
       password: String(form.get('password')),
+      fetchOptions: { headers: captcha.headers },
     })
-    if (error?.status === 403) {
+    captcha.reset()
+    // A failed captcha is a 403 too, so match on the code.
+    if (error?.code === 'EMAIL_NOT_VERIFIED') {
       setError('Your email is not verified yet. We sent you a new verification link.')
     } else {
       setError(error?.message)
@@ -94,7 +105,10 @@ function SignInForm() {
       <h2>Sign in</h2>
       <input name="email" type="email" placeholder="Email" required />
       <input name="password" type="password" placeholder="Password" required />
-      <button type="submit">Sign in</button>
+      {captcha.widget}
+      <button type="submit" disabled={!captcha.token}>
+        Sign in
+      </button>
       {error && <p role="alert">{error}</p>}
     </form>
   )
@@ -103,11 +117,17 @@ function SignInForm() {
 function MagicLinkForm() {
   const [error, setError] = useState<string>()
   const [sentTo, setSentTo] = useState<string>()
+  const captcha = useTurnstile()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const email = String(new FormData(event.currentTarget).get('email'))
-    const { error } = await authClient.signIn.magicLink({ email, callbackURL: '/' })
+    const { error } = await authClient.signIn.magicLink({
+      email,
+      callbackURL: '/',
+      fetchOptions: { headers: captcha.headers },
+    })
+    captcha.reset()
     setError(error?.message)
     setSentTo(error ? undefined : email)
   }
@@ -125,7 +145,10 @@ function MagicLinkForm() {
     <form onSubmit={handleSubmit}>
       <h2>Sign in with a magic link</h2>
       <input name="email" type="email" placeholder="Email" required />
-      <button type="submit">Email me a link</button>
+      {captcha.widget}
+      <button type="submit" disabled={!captcha.token}>
+        Email me a link
+      </button>
       {error && <p role="alert">{error}</p>}
     </form>
   )

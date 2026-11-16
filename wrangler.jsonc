@@ -29,7 +29,7 @@
 	// Declared here so `wrangler types` works without .dev.vars (e.g. in CI).
 	// Values: .dev.vars locally, `wrangler secret put` in production.
 	"secrets": {
-		"required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY"]
+		"required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY", "TURNSTILE_SECRET_KEY"]
 	},
 	// Public config only; secrets never go here.
 	// .dev.vars overrides these during local development.
