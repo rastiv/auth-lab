@@ -2,11 +2,28 @@ import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
 
+const params = new URLSearchParams(window.location.search)
 // Better-Auth redirects back with ?error=... when an email link is invalid or expired.
-const linkError = new URLSearchParams(window.location.search).get('error')
+const linkError = params.get('error')
+// A valid password reset link lands on /reset-password?token=...
+const initialResetToken = window.location.pathname === '/reset-password' ? params.get('token') : null
+
+const LINK_ERROR_MESSAGE = 'This link is invalid, expired, or already used. Request a new one.'
 
 function App() {
   const { data: session, isPending, isRefetching } = authClient.useSession()
+  const [resetToken, setResetToken] = useState(initialResetToken)
+  const [passwordReset, setPasswordReset] = useState(false)
+
+  function handlePasswordReset() {
+    // Drop the spent token from the address bar and history.
+    window.history.replaceState(null, '', '/')
+    setResetToken(null)
+    setPasswordReset(true)
+    // The server just revoked every session, but /reset-password isn't one of
+    // the paths that make useSession refetch on its own.
+    authClient.$store.notify('$sessionSignal')
+  }
 
   // While signed out, every session refetch (e.g. after sign-up) also reports
   // isPending; only block the UI on the first load so forms keep their state.
@@ -15,10 +32,16 @@ function App() {
   return (
     <main>
       <h1>auth-lab</h1>
-      {linkError && (
-        <p role="alert">This link is invalid, expired, or already used. Request a new one.</p>
+      {linkError && <p role="alert">{LINK_ERROR_MESSAGE}</p>}
+      {passwordReset && (
+        <p role="status">
+          Your password was changed and every session was signed out. Sign in with the new
+          password.
+        </p>
       )}
-      {session ? (
+      {resetToken ? (
+        <ResetPasswordForm token={resetToken} onDone={handlePasswordReset} />
+      ) : session ? (
         <section>
           <p>
             Signed in as <strong>{session.user.email}</strong>
@@ -29,6 +52,7 @@ function App() {
         <>
           <SignUpForm />
           <SignInForm />
+          <ForgotPasswordForm />
           <MagicLinkForm />
         </>
       )}
@@ -110,6 +134,80 @@ function SignInForm() {
         {captcha.token ? 'Sign in' : 'Verifying…'}
       </button>
       {error && <p role="alert">{error}</p>}
+    </form>
+  )
+}
+
+function ForgotPasswordForm() {
+  const [error, setError] = useState<string>()
+  const [sentTo, setSentTo] = useState<string>()
+  const captcha = useTurnstile()
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const email = String(new FormData(event.currentTarget).get('email'))
+    const { error } = await authClient.requestPasswordReset({
+      email,
+      redirectTo: '/reset-password',
+      fetchOptions: { headers: captcha.headers },
+    })
+    captcha.reset()
+    setError(error?.message)
+    setSentTo(error ? undefined : email)
+  }
+
+  if (sentTo) {
+    // Worded so it doesn't reveal whether the address has an account.
+    return (
+      <p>
+        If an account exists for <strong>{sentTo}</strong>, we sent it a link to reset the
+        password. It expires in 1 hour.
+      </p>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Forgot your password?</h2>
+      <input name="email" type="email" placeholder="Email" required />
+      {captcha.widget}
+      <button type="submit" disabled={!captcha.token}>
+        {captcha.token ? 'Email me a reset link' : 'Verifying…'}
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </form>
+  )
+}
+
+function ResetPasswordForm({ token, onDone }: { token: string; onDone: () => void }) {
+  const [error, setError] = useState<string>()
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const { error } = await authClient.resetPassword({
+      newPassword: String(new FormData(event.currentTarget).get('password')),
+      token,
+    })
+    if (!error) onDone()
+    else setError(error.code === 'INVALID_TOKEN' ? LINK_ERROR_MESSAGE : error.message)
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <h2>Choose a new password</h2>
+      <input
+        name="password"
+        type="password"
+        placeholder="New password"
+        autoComplete="new-password"
+        minLength={8}
+        required
+      />
+      <button type="submit">Set new password</button>
+      {error && <p role="alert">{error}</p>}
+      <p>
+        <a href="/">Back to sign in</a>
+      </p>
     </form>
   )
 }

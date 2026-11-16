@@ -5,7 +5,7 @@ import { betterAuth } from "better-auth/minimal";
 import { captcha } from "better-auth/plugins/captcha";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { db } from "./db";
-import { magicLinkEmail, sendEmail, verificationEmail } from "./email";
+import { magicLinkEmail, resetPasswordEmail, sendEmail, verificationEmail } from "./email";
 import { hashPassword, verifyPassword } from "./password";
 
 export const auth = betterAuth({
@@ -16,6 +16,18 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     password: { hash: hashPassword, verify: verifyPassword },
+    // Better-Auth runs this in the background (see backgroundTasks), so known
+    // and unknown addresses get the same response in the same time.
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({ to: user.email, ...resetPasswordEmail(url) });
+    },
+    // A reset usually means the password may be compromised: sign out everywhere.
+    revokeSessionsOnPasswordReset: true,
+  },
+  verification: {
+    // Reset tokens are stored as-is by default; hash them like magic link
+    // tokens, so a leaked database can't be used to take over accounts.
+    storeIdentifier: { default: "plain", overrides: { "reset-password:": "hashed" } },
   },
   emailVerification: {
     sendOnSignUp: true,
@@ -32,7 +44,12 @@ export const auth = betterAuth({
       secretKey: env.TURNSTILE_SECRET_KEY,
       // Every endpoint that sends an email (spam, Resend quota, domain
       // reputation) or runs PBKDF2 (CPU limit, password guessing).
-      endpoints: ["/sign-up/email", "/sign-in/email", "/sign-in/magic-link"],
+      endpoints: [
+        "/sign-up/email",
+        "/sign-in/email",
+        "/sign-in/magic-link",
+        "/request-password-reset",
+      ],
     }),
     magicLink({
       // Only a hash is stored, so a leaked database can't be used to sign in.

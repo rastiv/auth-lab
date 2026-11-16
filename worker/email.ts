@@ -42,6 +42,17 @@ The link works once and expires in 5 minutes. If you didn't request it, ignore t
   };
 }
 
+export function resetPasswordEmail(url: string): Omit<Email, "to"> {
+  return {
+    subject: "Reset your auth-lab password",
+    text: `Choose a new password by opening this link:
+${url}
+
+The link works once and expires in 1 hour. If you didn't request it, ignore this email: your password stays the same.`,
+    html: `<p>Choose a new password for auth-lab:</p><p><a href="${escapeHtml(url)}">Reset password</a></p><p>The link works once and expires in 1 hour. If you didn't request it, ignore this email: your password stays the same.</p>`,
+  };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
