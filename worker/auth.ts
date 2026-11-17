@@ -24,6 +24,21 @@ export const auth = betterAuth({
     // A reset usually means the password may be compromised: sign out everywhere.
     revokeSessionsOnPasswordReset: true,
   },
+  socialProviders: {
+    github: {
+      clientId: env.GITHUB_CLIENT_ID,
+      clientSecret: env.GITHUB_CLIENT_SECRET,
+    },
+  },
+  account: {
+    // We only need the provider tokens once, to read the profile at sign-in;
+    // encrypt the copies kept in the account table anyway.
+    encryptOAuthTokens: true,
+    // Implicit linking (same email, different method) stays on, with
+    // Better-Auth's defaults: only when the provider vouches for the email and
+    // the local account's email is verified, so an attacker can't pre-register
+    // someone's address and inherit their GitHub sign-in.
+  },
   verification: {
     // Reset tokens are stored as-is by default; hash them like magic link
     // tokens, so a leaked database can't be used to take over accounts.

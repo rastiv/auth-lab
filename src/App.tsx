@@ -2,13 +2,23 @@ import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
 
+const LINK_ERROR_MESSAGE = 'This link is invalid, expired, or already used. Request a new one.'
+
+const ERROR_MESSAGES: Record<string, string> = {
+  INVALID_TOKEN: LINK_ERROR_MESSAGE,
+  account_not_linked:
+    'An account with this email already exists, but its email is not verified yet. Verify it first (or reset the password), then try again.',
+  access_denied: 'Sign-in was cancelled.',
+}
+
 const params = new URLSearchParams(window.location.search)
-// Better-Auth redirects back with ?error=... when an email link is invalid or expired.
-const linkError = params.get('error')
+// Better-Auth redirects back with ?error=<code> when an email link or an OAuth
+// sign-in fails.
+const errorCode = params.get('error')
+const errorMessage =
+  errorCode && (ERROR_MESSAGES[errorCode] ?? `Sign-in failed (${errorCode}). Please try again.`)
 // A valid password reset link lands on /reset-password?token=...
 const initialResetToken = window.location.pathname === '/reset-password' ? params.get('token') : null
-
-const LINK_ERROR_MESSAGE = 'This link is invalid, expired, or already used. Request a new one.'
 
 function App() {
   const { data: session, isPending, isRefetching } = authClient.useSession()
@@ -32,7 +42,7 @@ function App() {
   return (
     <main>
       <h1>auth-lab</h1>
-      {linkError && <p role="alert">{LINK_ERROR_MESSAGE}</p>}
+      {errorMessage && <p role="alert">{errorMessage}</p>}
       {passwordReset && (
         <p role="status">
           Your password was changed and every session was signed out. Sign in with the new
@@ -50,6 +60,7 @@ function App() {
         </section>
       ) : (
         <>
+          <SocialSignIn />
           <SignUpForm />
           <SignInForm />
           <ForgotPasswordForm />
@@ -57,6 +68,21 @@ function App() {
         </>
       )}
     </main>
+  )
+}
+
+function SocialSignIn() {
+  // No captcha: the provider authenticates the person, and nothing here sends
+  // email or hashes a password.
+  function signIn(provider: 'github') {
+    authClient.signIn.social({ provider, callbackURL: '/', errorCallbackURL: '/' })
+  }
+
+  return (
+    <section>
+      <h2>Sign in with a provider</h2>
+      <button onClick={() => signIn('github')}>Continue with GitHub</button>
+    </section>
   )
 }
 

@@ -5,3 +5,7 @@ BETTER_AUTH_URL=http://localhost:5173
 RESEND_API_KEY=
 # Cloudflare's test secret: every token passes. Production uses the real one.
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# From a separate GitHub OAuth App whose callback is
+# http://localhost:5173/api/auth/callback/github
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
