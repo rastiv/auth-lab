@@ -45,6 +45,15 @@ export const auth = betterAuth({
     // the local account's email is verified, so an attacker can't pre-register
     // someone's address and inherit their Google or GitHub sign-in.
   },
+  databaseHooks: {
+    account: {
+      // Google's ID token is only needed to identify you during sign-in, but
+      // Better-Auth stores it unencrypted. Drop it: data we don't keep can't leak.
+      // On update this also clears tokens stored before this hook existed.
+      create: { before: async (account) => ({ data: { ...account, idToken: null } }) },
+      update: { before: async (account) => ({ data: { ...account, idToken: null } }) },
+    },
+  },
   verification: {
     // Reset tokens are stored as-is by default; hash them like magic link
     // tokens, so a leaked database can't be used to take over accounts.
