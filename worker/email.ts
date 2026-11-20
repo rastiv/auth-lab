@@ -53,6 +53,19 @@ The link works once and expires in 1 hour. If you didn't request it, ignore this
   };
 }
 
+// Sent after both a change and a reset (which also covers setting a first password).
+export function passwordChangedEmail(appUrl: string): Omit<Email, "to"> {
+  return {
+    subject: "Your auth-lab password was changed",
+    text: `A new password was just set for your auth-lab account, and your other devices were signed out.
+
+If this was you, there's nothing to do.
+
+If it wasn't, someone may have access to your account: reset your password right away with "Forgot your password?" at ${appUrl}`,
+    html: `<p>A new password was just set for your auth-lab account, and your other devices were signed out.</p><p>If this was you, there's nothing to do.</p><p><strong>If it wasn't</strong>, someone may have access to your account: reset your password right away with "Forgot your password?" at <a href="${escapeHtml(appUrl)}">auth-lab</a>.</p>`,
+  };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")

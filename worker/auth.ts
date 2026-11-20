@@ -1,12 +1,27 @@
 import { env, waitUntil } from "cloudflare:workers";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
 // The minimal build omits Kysely; Drizzle is our only database layer.
 import { betterAuth } from "better-auth/minimal";
 import { captcha } from "better-auth/plugins/captcha";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { db } from "./db";
-import { magicLinkEmail, resetPasswordEmail, sendEmail, verificationEmail } from "./email";
+import {
+  magicLinkEmail,
+  passwordChangedEmail,
+  resetPasswordEmail,
+  sendEmail,
+  verificationEmail,
+} from "./email";
 import { hashPassword, verifyPassword } from "./password";
+
+// If someone else changed the password, this is how the owner finds out.
+function notifyPasswordChanged(email: string) {
+  // After the response, and a failed notification must not fail the change.
+  waitUntil(
+    sendEmail({ to: email, ...passwordChangedEmail(env.BETTER_AUTH_URL) }).catch(console.error),
+  );
+}
 
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
@@ -23,6 +38,16 @@ export const auth = betterAuth({
     },
     // A reset usually means the password may be compromised: sign out everywhere.
     revokeSessionsOnPasswordReset: true,
+    onPasswordReset: async ({ user }) => notifyPasswordChanged(user.email),
+  },
+  hooks: {
+    // Better-Auth has no callback for /change-password, so check every response.
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path !== "/change-password") return;
+      // A failed change returns an error instead, which has no user.
+      const returned = ctx.context.returned as { user?: { email: string } } | undefined;
+      if (returned?.user) notifyPasswordChanged(returned.user.email);
+    }),
   },
   socialProviders: {
     github: {

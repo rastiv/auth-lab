@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
 
@@ -62,6 +62,7 @@ export function SignInMethods({ email }: { email: string }) {
               {account ? (
                 <>
                   connected{' '}
+                  {providerId === 'credential' && <ChangePassword />}
                   {/* The server enforces this too; disabling just explains it up front. */}
                   <button
                     onClick={() => unlink(account)}
@@ -85,6 +86,61 @@ export function SignInMethods({ email }: { email: string }) {
       </p>
       {error && <p role="alert">{error}</p>}
     </section>
+  )
+}
+
+/**
+ * Needs the current password, so a stolen session alone can't lock you out.
+ * This device stays signed in; every other session is revoked.
+ */
+function ChangePassword() {
+  const [open, setOpen] = useState(false)
+  const [error, setError] = useState<string>()
+  const [changed, setChanged] = useState(false)
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    const { error } = await authClient.changePassword({
+      currentPassword: String(form.get('currentPassword')),
+      newPassword: String(form.get('newPassword')),
+      revokeOtherSessions: true,
+    })
+    setError(error?.message)
+    if (!error) {
+      setChanged(true)
+      setOpen(false)
+    }
+  }
+
+  if (changed && !open) {
+    return <span>Password changed; other devices were signed out. </span>
+  }
+  if (!open) return <button onClick={() => setOpen(true)}>Change</button>
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        name="currentPassword"
+        type="password"
+        placeholder="Current password"
+        autoComplete="current-password"
+        required
+      />
+      <input
+        name="newPassword"
+        type="password"
+        placeholder="New password"
+        autoComplete="new-password"
+        minLength={8}
+        required
+      />
+      <button type="submit">Change password</button>
+      <button type="button" onClick={() => setOpen(false)}>
+        Cancel
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </form>
   )
 }
 
