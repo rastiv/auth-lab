@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
+import { SignInMethods } from './SignInMethods'
 
 const LINK_ERROR_MESSAGE = 'This link is invalid, expired, or already used. Request a new one.'
 
@@ -9,6 +10,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   account_not_linked:
     'An account with this email already exists, but its email is not verified yet. Verify it first (or reset the password), then try again.',
   access_denied: 'Sign-in was cancelled.',
+  email_does_not_match:
+    'That account uses a different email address. Only accounts with your email can be connected.',
+  account_already_linked_to_different_user:
+    'That account is already connected to a different auth-lab user.',
 }
 
 const params = new URLSearchParams(window.location.search)
@@ -57,6 +62,7 @@ function App() {
             Signed in as <strong>{session.user.email}</strong>
           </p>
           <button onClick={() => authClient.signOut()}>Sign out</button>
+          <SignInMethods email={session.user.email} />
         </section>
       ) : (
         <>
