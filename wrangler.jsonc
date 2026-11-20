@@ -29,16 +29,17 @@
 	// Declared here so `wrangler types` works without .dev.vars (e.g. in CI).
 	// Values: .dev.vars locally, `wrangler secret put` in production.
 	"secrets": {
-		"required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY", "TURNSTILE_SECRET_KEY", "GITHUB_CLIENT_SECRET"]
+		"required": ["BETTER_AUTH_SECRET", "RESEND_API_KEY", "TURNSTILE_SECRET_KEY", "GITHUB_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"]
 	},
 	// Public config only; secrets never go here.
 	// .dev.vars overrides these during local development.
 	"vars": {
 		"BETTER_AUTH_URL": "https://auth.rastiv.dev",
 		"EMAIL_FROM": "auth-lab <no-reply@mail.rastiv.dev>",
-		// Public (it is in the OAuth redirect URL); .dev.vars overrides it with the
-		// localhost app. The client secret is a Worker secret.
-		"GITHUB_CLIENT_ID": "Ov23lispQtg1dK82IbVA"
+		// OAuth client IDs are public (they are in the redirect URL); .dev.vars
+		// overrides them with the localhost apps. Client secrets are Worker secrets.
+		"GITHUB_CLIENT_ID": "Ov23lispQtg1dK82IbVA",
+		"GOOGLE_CLIENT_ID": "376081981511-eebco77lv8o45mt9oml9c8k6qcj8m1ht.apps.googleusercontent.com"
 	},
 	"observability": {
 		"enabled": true

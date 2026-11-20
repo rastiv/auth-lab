@@ -67,6 +67,9 @@ function App() {
           <MagicLinkForm />
         </>
       )}
+      <footer>
+        <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a>
+      </footer>
     </main>
   )
 }
@@ -74,13 +77,14 @@ function App() {
 function SocialSignIn() {
   // No captcha: the provider authenticates the person, and nothing here sends
   // email or hashes a password.
-  function signIn(provider: 'github') {
+  function signIn(provider: 'github' | 'google') {
     authClient.signIn.social({ provider, callbackURL: '/', errorCallbackURL: '/' })
   }
 
   return (
     <section>
       <h2>Sign in with a provider</h2>
+      <button onClick={() => signIn('google')}>Continue with Google</button>
       <button onClick={() => signIn('github')}>Continue with GitHub</button>
     </section>
   )

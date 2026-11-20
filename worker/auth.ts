@@ -29,6 +29,12 @@ export const auth = betterAuth({
       clientId: env.GITHUB_CLIENT_ID,
       clientSecret: env.GITHUB_CLIENT_SECRET,
     },
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+      // Let people pick an account instead of silently reusing the last one.
+      prompt: "select_account",
+    },
   },
   account: {
     // We only need the provider tokens once, to read the profile at sign-in;
@@ -37,7 +43,7 @@ export const auth = betterAuth({
     // Implicit linking (same email, different method) stays on, with
     // Better-Auth's defaults: only when the provider vouches for the email and
     // the local account's email is verified, so an attacker can't pre-register
-    // someone's address and inherit their GitHub sign-in.
+    // someone's address and inherit their Google or GitHub sign-in.
   },
   verification: {
     // Reset tokens are stored as-is by default; hash them like magic link
