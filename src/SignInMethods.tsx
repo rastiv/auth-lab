@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
+import { TwoFactorSetting } from './TwoFactor'
 
 type Account = NonNullable<Awaited<ReturnType<typeof authClient.listAccounts>>['data']>[number]
 
@@ -18,7 +19,13 @@ const UNLINK_ERRORS: Record<string, string> = {
 }
 
 /** One row per sign-in method: each is a row in the account table. */
-export function SignInMethods({ email }: { email: string }) {
+export function SignInMethods({
+  email,
+  twoFactorEnabled,
+}: {
+  email: string
+  twoFactorEnabled: boolean
+}) {
   const [accounts, setAccounts] = useState<Account[]>()
   const [error, setError] = useState<string>()
   const [version, setVersion] = useState(0)
@@ -71,9 +78,13 @@ export function SignInMethods({ email }: { email: string }) {
                   >
                     Remove
                   </button>
+                  {providerId === 'credential' && <TwoFactorSetting enabled={twoFactorEnabled} />}
                 </>
               ) : providerId === 'credential' ? (
-                <SetPassword email={email} />
+                <>
+                  <SetPassword email={email} />
+                  <p>Two-factor authentication protects password sign-in: set a password to use it.</p>
+                </>
               ) : (
                 <button onClick={() => link(providerId)}>Connect</button>
               )}

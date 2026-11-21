@@ -5,6 +5,7 @@ import { createAuthMiddleware } from "better-auth/api";
 import { betterAuth } from "better-auth/minimal";
 import { captcha } from "better-auth/plugins/captcha";
 import { magicLink } from "better-auth/plugins/magic-link";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { db } from "./db";
 import {
   magicLinkEmail,
@@ -94,6 +95,13 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    // TOTP secrets and backup codes are stored encrypted with BETTER_AUTH_SECRET.
+    // Only password sign-in asks for a code: Google/GitHub have their own 2FA,
+    // and magic links bypass it (a known trade-off, explained in the UI).
+    twoFactor({
+      // The account name shown in authenticator apps.
+      issuer: "auth-lab",
+    }),
     captcha({
       provider: "cloudflare-turnstile",
       secretKey: env.TURNSTILE_SECRET_KEY,

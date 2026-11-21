@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
 import { SignInMethods } from './SignInMethods'
+import { TwoFactorChallenge } from './TwoFactor'
 
 const LINK_ERROR_MESSAGE = 'This link is invalid, expired, or already used. Request a new one.'
 
@@ -62,7 +63,10 @@ function App() {
             Signed in as <strong>{session.user.email}</strong>
           </p>
           <button onClick={() => authClient.signOut()}>Sign out</button>
-          <SignInMethods email={session.user.email} />
+          <SignInMethods
+            email={session.user.email}
+            twoFactorEnabled={session.user.twoFactorEnabled ?? false}
+          />
         </section>
       ) : (
         <>
@@ -141,17 +145,20 @@ function SignUpForm() {
 
 function SignInForm() {
   const [error, setError] = useState<string>()
+  const [needsCode, setNeedsCode] = useState(false)
   const captcha = useTurnstile()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const { error } = await authClient.signIn.email({
+    const { data, error } = await authClient.signIn.email({
       email: String(form.get('email')),
       password: String(form.get('password')),
       fetchOptions: { headers: captcha.headers },
     })
     captcha.reset()
+    // The password was right, but the account has 2FA: no session until a code.
+    if (data && 'twoFactorRedirect' in data && data.twoFactorRedirect) return setNeedsCode(true)
     // A failed captcha is a 403 too, so match on the code.
     if (error?.code === 'EMAIL_NOT_VERIFIED') {
       setError('Your email is not verified yet. We sent you a new verification link.')
@@ -159,6 +166,8 @@ function SignInForm() {
       setError(error?.message)
     }
   }
+
+  if (needsCode) return <TwoFactorChallenge />
 
   return (
     <form onSubmit={handleSubmit}>
