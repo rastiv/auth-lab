@@ -147,6 +147,12 @@ export function TwoFactorSetting({ enabled }: { enabled: boolean }) {
     event.preventDefault()
     const code = String(new FormData(event.currentTarget).get('code')).trim()
     const { error } = await authClient.twoFactor.verifyTotp({ code })
+    if (error?.code === 'INVALID_CODE') {
+      // Usually a leftover entry from an earlier setup: apps keep both under the same name.
+      return setError(
+        "That code doesn't match. If your app shows more than one auth-lab entry, delete the older ones and use the newest.",
+      )
+    }
     if (error) return setError(error.message)
     setError(undefined)
     setBackupCodes(setup?.backupCodes)
@@ -173,18 +179,28 @@ export function TwoFactorSetting({ enabled }: { enabled: boolean }) {
   }
 
   if (setup) {
-    const secret = new URL(setup.totpURI).searchParams.get('secret') ?? ''
     // An <img> with a data URI, not injected markup: the SVG can't run script.
     const qrCode = `data:image/svg+xml;utf8,${encodeURIComponent(renderSVG(setup.totpURI))}`
     return (
       <form onSubmit={handleCode}>
-        <p>Scan this with your authenticator app, then enter the code it shows.</p>
+        <ol>
+          <li>
+            Open an authenticator app on your phone. Don't have one? Install a free one from
+            your app store: Google Authenticator, Microsoft Authenticator, Authy, 2FAS or
+            Bitwarden Authenticator.
+          </li>
+          <li>In the app, add a new account and scan this QR code:</li>
+        </ol>
         <img src={qrCode} alt="QR code for your authenticator app" width={180} height={180} />
-        <p>
-          Can't scan? Enter this key manually: <code>{secret.match(/.{1,4}/g)?.join(' ')}</code>
-        </p>
+        <ol start={3}>
+          <li>
+            The app now shows a 6-digit code for auth-lab. It changes every 30 seconds. Enter
+            the current one here:
+          </li>
+        </ol>
         <input
           name="code"
+          aria-label="6-digit code from your app"
           placeholder="123456"
           autoComplete="one-time-code"
           inputMode="numeric"
