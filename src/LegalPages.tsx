@@ -1,11 +1,12 @@
+import { AUTH_EVENT_RETENTION_DAYS } from '../shared/auth-events'
+
 const CONTACT_EMAIL = 'rastiv.bg@gmail.com'
-const LAST_UPDATED = '20 November 2026'
 
 export function PrivacyPolicy() {
   return (
     <main>
       <h1>Privacy policy</h1>
-      <p>Last updated: {LAST_UPDATED}</p>
+      <p>Last updated: 22 November 2026</p>
       <p>
         auth-lab is an open-source reference implementation of modern authentication by Raycho
         Ivanov. Every sign-in method runs for real, and the trade-offs behind each one are
@@ -24,8 +25,19 @@ export function PrivacyPolicy() {
           profile and email address are requested from them.
         </li>
         <li>
+          <strong>Two-factor authentication</strong> (if you turn it on): your authenticator
+          secret and backup codes, encrypted.
+        </li>
+        <li>
           <strong>Sessions:</strong> a session cookie, and the IP address and browser of each
           signed-in session.
+        </li>
+        <li>
+          <strong>Account activity:</strong> sign-ins, failed sign-in attempts, sign-outs and
+          security changes (such as a new password), each with the time, the browser and
+          operating system, and the approximate city, country and network provider. No IP
+          address is kept in this log. You can see it under "Recent activity"; it is deleted after{' '}
+          {AUTH_EVENT_RETENTION_DAYS} days.
         </li>
         <li>
           <strong>Email links:</strong> short-lived tokens for verification, sign-in and password
@@ -37,6 +49,10 @@ export function PrivacyPolicy() {
       <p>
         Only to let you sign in and to demonstrate how authentication works. There are no ads,
         no analytics and no tracking cookies. Your data is never sold or shared for marketing.
+      </p>
+      <p>
+        The activity log is for your security: it lets you spot a sign-in that wasn't you. Under
+        the GDPR, this is a legitimate interest (Art. 6(1)(f)).
       </p>
 
       <h2>Services that process your data</h2>
@@ -71,7 +87,7 @@ export function TermsOfService() {
   return (
     <main>
       <h1>Terms of service</h1>
-      <p>Last updated: {LAST_UPDATED}</p>
+      <p>Last updated: 20 November 2026</p>
       <ul>
         <li>
           auth-lab is a live demonstration, provided as is, without any guarantee of

@@ -26,6 +26,10 @@
 			"migrations_dir": "worker/db/migrations"
 		}
 	],
+	// Daily at 03:00 UTC: delete auth events past the retention period.
+	"triggers": {
+		"crons": ["0 3 * * *"]
+	},
 	// Declared here so `wrangler types` works without .dev.vars (e.g. in CI).
 	// Values: .dev.vars locally, `wrangler secret put` in production.
 	"secrets": {

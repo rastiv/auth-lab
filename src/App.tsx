@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { SecurityActivity } from './Activity'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
 import { SignInMethods } from './SignInMethods'
@@ -63,6 +64,7 @@ function App() {
             email={session.user.email}
             twoFactorEnabled={session.user.twoFactorEnabled ?? false}
           />
+          <SecurityActivity currentSessionId={session.session.id} />
         </section>
       ) : (
         <>

@@ -6,6 +6,7 @@ import { betterAuth } from "better-auth/minimal";
 import { captcha } from "better-auth/plugins/captcha";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { twoFactor } from "better-auth/plugins/two-factor";
+import { authEvents, recordAuthEvent } from "./auth-events";
 import { db } from "./db";
 import {
   magicLinkEmail,
@@ -41,7 +42,10 @@ export const auth = betterAuth({
     },
     // A reset usually means the password may be compromised: sign out everywhere.
     revokeSessionsOnPasswordReset: true,
-    onPasswordReset: async ({ user }) => notifyPasswordChanged(user.email),
+    onPasswordReset: async ({ user }, request) => {
+      notifyPasswordChanged(user.email);
+      recordAuthEvent(user.id, "password_reset", null, request);
+    },
   },
   hooks: {
     // Better-Auth has no callback for /change-password, so check every response.
@@ -144,6 +148,8 @@ export const auth = betterAuth({
         await sendEmail({ to: email, ...magicLinkEmail(url) });
       },
     }),
+    // Must stay after twoFactor: see worker/auth-events.ts.
+    authEvents(),
   ],
   advanced: {
     // Workers don't set X-Forwarded-For; rate limiting needs the real client IP.
