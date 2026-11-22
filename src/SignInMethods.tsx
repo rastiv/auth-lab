@@ -48,11 +48,6 @@ export function SignInMethods({
     else setVersion((n) => n + 1)
   }
 
-  function link(provider: 'google' | 'github') {
-    // Redirects to the provider; back on '/', the new account row is there.
-    authClient.linkSocial({ provider, callbackURL: '/', errorCallbackURL: '/' })
-  }
-
   if (!accounts) return <p>Loading sign-in methods...</p>
 
   const onlyOne = accounts.length === 1
@@ -86,7 +81,11 @@ export function SignInMethods({
                   <p>Two-factor authentication protects password sign-in: set a password to use it.</p>
                 </>
               ) : (
-                <button onClick={() => link(providerId)}>Connect</button>
+                // No "Connect" button: signing in with a provider account that
+                // uses the same verified email links it automatically.
+                <span>
+                  not used yet. Sign in with {label} using {email} and it's added here.
+                </span>
               )}
             </li>
           )

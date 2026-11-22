@@ -12,9 +12,11 @@ import {
   passwordChangedEmail,
   resetPasswordEmail,
   sendEmail,
+  twoFactorCodeEmail,
   verificationEmail,
 } from "./email";
 import { hashPassword, verifyPassword } from "./password";
+import { hasAuthenticatorApp } from "./two-factor";
 
 // If someone else changed the password, this is how the owner finds out.
 function notifyPasswordChanged(email: string) {
@@ -54,6 +56,9 @@ export const auth = betterAuth({
     github: {
       clientId: env.GITHUB_CLIENT_ID,
       clientSecret: env.GITHUB_CLIENT_SECRET,
+      // Otherwise GitHub silently uses whichever account is signed in on
+      // github.com, which may not be the one you meant.
+      prompt: "select_account",
     },
     google: {
       clientId: env.GOOGLE_CLIENT_ID,
@@ -95,12 +100,28 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    // Two methods, one per account: an authenticator app (TOTP) or a code by
+    // email (weaker: whoever controls the inbox has both factors).
     // TOTP secrets and backup codes are stored encrypted with BETTER_AUTH_SECRET.
     // Only password sign-in asks for a code: Google/GitHub have their own 2FA,
     // and magic links bypass it (a known trade-off, explained in the UI).
     twoFactor({
       // The account name shown in authenticator apps.
       issuer: "auth-lab",
+      otpOptions: {
+        // Minutes. Inboxes can be slow; same lifetime as a magic link.
+        period: 5,
+        // Only a hash is stored, like the other email tokens.
+        storeOTP: "hashed",
+        // Runs in the background, so the response is the same either way.
+        sendOTP: async ({ user, otp }) => {
+          // Better-Auth offers email codes to every 2FA account. With the
+          // password and the inbox, an attacker could then skip the
+          // authenticator app, so accounts that have one never get a code.
+          if (await hasAuthenticatorApp(user.id)) return;
+          await sendEmail({ to: user.email, ...twoFactorCodeEmail(otp) });
+        },
+      },
     }),
     captcha({
       provider: "cloudflare-turnstile",

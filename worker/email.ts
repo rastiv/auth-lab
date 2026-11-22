@@ -53,6 +53,19 @@ The link works once and expires in 1 hour. If you didn't request it, ignore this
   };
 }
 
+// The code stays out of the subject, so it doesn't show on a lock screen.
+export function twoFactorCodeEmail(code: string): Omit<Email, "to"> {
+  return {
+    subject: "Your auth-lab sign-in code",
+    text: `Your sign-in code is ${code}
+
+It works once and expires in 5 minutes.
+
+This email means someone just entered your password. If it wasn't you, change your password right away.`,
+    html: `<p>Your sign-in code is</p><p style="font-size:24px;letter-spacing:4px"><strong>${escapeHtml(code)}</strong></p><p>It works once and expires in 5 minutes.</p><p>This email means someone just entered your password. <strong>If it wasn't you</strong>, change your password right away.</p>`,
+  };
+}
+
 // Sent after both a change and a reset (which also covers setting a first password).
 export function passwordChangedEmail(appUrl: string): Omit<Email, "to"> {
   return {

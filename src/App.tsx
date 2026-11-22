@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
 import { SignInMethods } from './SignInMethods'
-import { TwoFactorChallenge } from './TwoFactor'
+import { TwoFactorChallenge, type TwoFactorMethod } from './TwoFactor'
 
 const LINK_ERROR_MESSAGE = 'This link is invalid, expired, or already used. Request a new one.'
 
@@ -11,10 +11,6 @@ const ERROR_MESSAGES: Record<string, string> = {
   account_not_linked:
     'An account with this email already exists, but its email is not verified yet. Verify it first (or reset the password), then try again.',
   access_denied: 'Sign-in was cancelled.',
-  email_does_not_match:
-    'That account uses a different email address. Only accounts with your email can be connected.',
-  account_already_linked_to_different_user:
-    'That account is already connected to a different auth-lab user.',
 }
 
 const params = new URLSearchParams(window.location.search)
@@ -145,7 +141,7 @@ function SignUpForm() {
 
 function SignInForm() {
   const [error, setError] = useState<string>()
-  const [needsCode, setNeedsCode] = useState(false)
+  const [twoFactorMethod, setTwoFactorMethod] = useState<TwoFactorMethod>()
   const captcha = useTurnstile()
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -158,7 +154,16 @@ function SignInForm() {
     })
     captcha.reset()
     // The password was right, but the account has 2FA: no session until a code.
-    if (data && 'twoFactorRedirect' in data && data.twoFactorRedirect) return setNeedsCode(true)
+    if (data && 'twoFactorRedirect' in data && data.twoFactorRedirect) {
+      // Better-Auth lists "otp" for every account once email codes are
+      // configured, so "totp" decides; the server won't email those accounts.
+      // (The response has the list, but the client type doesn't declare it.)
+      const { twoFactorMethods } = data as { twoFactorMethods?: string[] }
+      if (twoFactorMethods?.includes('totp')) return setTwoFactorMethod('app')
+      const { error } = await authClient.twoFactor.sendOtp()
+      if (error) return setError(error.message)
+      return setTwoFactorMethod('email')
+    }
     // A failed captcha is a 403 too, so match on the code.
     if (error?.code === 'EMAIL_NOT_VERIFIED') {
       setError('Your email is not verified yet. We sent you a new verification link.')
@@ -167,7 +172,7 @@ function SignInForm() {
     }
   }
 
-  if (needsCode) return <TwoFactorChallenge />
+  if (twoFactorMethod) return <TwoFactorChallenge method={twoFactorMethod} />
 
   return (
     <form onSubmit={handleSubmit}>
