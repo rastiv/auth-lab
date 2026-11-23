@@ -16,6 +16,7 @@ import {
   twoFactorCodeEmail,
   verificationEmail,
 } from "./email";
+import { userFields } from "../shared/user-fields";
 import { hashPassword, verifyPassword } from "./password";
 import { hasAuthenticatorApp } from "./two-factor";
 
@@ -31,6 +32,7 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, { provider: "sqlite" }),
+  user: { additionalFields: userFields },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

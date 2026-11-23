@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { SecurityActivity } from './Activity'
 import { authClient } from './lib/auth-client'
 import { useTurnstile } from './lib/use-turnstile'
+import { SignInAlerts } from './SignInAlerts'
 import { SignInMethods } from './SignInMethods'
 import { TwoFactorChallenge, type TwoFactorMethod } from './TwoFactor'
 
@@ -64,7 +65,8 @@ function App() {
             email={session.user.email}
             twoFactorEnabled={session.user.twoFactorEnabled ?? false}
           />
-          <SecurityActivity currentSessionId={session.session.id} />
+          <SignInAlerts enabled={session.user.newDeviceAlerts ?? true} />
+          <SecurityActivity />
         </section>
       ) : (
         <>

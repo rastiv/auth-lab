@@ -6,7 +6,7 @@ export function PrivacyPolicy() {
   return (
     <main>
       <h1>Privacy policy</h1>
-      <p>Last updated: 22 November 2026</p>
+      <p>Last updated: 23 November 2026</p>
       <p>
         auth-lab is an open-source reference implementation of modern authentication by Raycho
         Ivanov. Every sign-in method runs for real, and the trade-offs behind each one are
@@ -38,6 +38,11 @@ export function PrivacyPolicy() {
           operating system, and the approximate city, country and network provider. No IP
           address is kept in this log. You can see it under "Recent activity"; it is deleted after{' '}
           {AUTH_EVENT_RETENTION_DAYS} days.
+        </li>
+        <li>
+          <strong>Browsers you sign in from:</strong> a cookie with a random identifier, of which
+          only a hash is stored, so we can email you when your account is signed in to from a new
+          browser (you can turn these emails off). It is deleted after 400 days without a sign-in.
         </li>
         <li>
           <strong>Email links:</strong> short-lived tokens for verification, sign-in and password

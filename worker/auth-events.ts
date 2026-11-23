@@ -7,15 +7,16 @@ import {
   type AuthEventMethod,
   type AuthEventType,
 } from "../shared/auth-events";
-import { describeDevice } from "../shared/device";
 import { db } from "./db";
 import { authEvent } from "./db/schema";
+import { rememberDevice } from "./known-devices";
+import { describeRequest } from "./request-info";
 
 type AuthMiddlewareContext = Parameters<Parameters<typeof createAuthMiddleware>[0]>[0];
 
 /**
  * Logs an event after the response: sign-in isn't slower, and a failed write
- * can't fail it. Location comes from Cloudflare (request.cf), no GeoIP lookup.
+ * can't fail it.
  */
 export function recordAuthEvent(
   userId: string | Promise<string | undefined>,
@@ -23,19 +24,10 @@ export function recordAuthEvent(
   method: AuthEventMethod | null,
   request: Request | undefined,
 ) {
-  const cf = (request as { cf?: IncomingRequestCfProperties } | undefined)?.cf;
   const write = async () => {
     const id = await userId;
     if (!id) return;
-    await db.insert(authEvent).values({
-      userId: id,
-      type,
-      method,
-      device: describeDevice(request?.headers.get("user-agent")),
-      city: cf?.city ?? null,
-      country: cf?.country ?? null,
-      network: cf?.asOrganization ?? null,
-    });
+    await db.insert(authEvent).values({ userId: id, type, method, ...describeRequest(request) });
   };
   waitUntil(write().catch(console.error));
 }
@@ -135,6 +127,7 @@ export const authEvents = () =>
             const newSession = ctx.context.newSession;
             const method = signInMethod(ctx);
             if (method && newSession) {
+              rememberDevice(ctx, newSession.user, method);
               return recordAuthEvent(newSession.user.id, "sign_in", method, request);
             }
 
@@ -160,6 +153,7 @@ export const authEvents = () =>
               }
               if (challenge && newSession) {
                 const via = `password+${twoFactorMethod}`;
+                rememberDevice(ctx, newSession.user, via);
                 return recordAuthEvent(newSession.user.id, "sign_in", via, request);
               }
               // No challenge: a signed-in user confirming a new authenticator app.
@@ -183,6 +177,11 @@ export const authEvents = () =>
               recordAuthEvent(sessionUserId, "method_removed", removed, request);
             } else if (REVOKE_PATHS[path]) {
               recordAuthEvent(sessionUserId, "sessions_revoked", REVOKE_PATHS[path], request);
+            } else if (path === "/update-user") {
+              const alerts = (ctx.body as { newDeviceAlerts?: unknown })?.newDeviceAlerts;
+              if (typeof alerts !== "boolean") return;
+              const type = alerts ? "new_device_alerts_on" : "new_device_alerts_off";
+              recordAuthEvent(sessionUserId, type, null, request);
             }
           }),
         },

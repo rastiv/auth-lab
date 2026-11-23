@@ -1,24 +1,11 @@
 import { useEffect, useState } from 'react'
-import { AUTH_EVENT_RETENTION_DAYS, type AuthEvent } from '../shared/auth-events'
-import { describeDevice } from '../shared/device'
+import {
+  AUTH_EVENT_RETENTION_DAYS,
+  METHOD_LABELS,
+  type ActiveSession,
+  type AuthEvent,
+} from '../shared/auth-events'
 import { authClient } from './lib/auth-client'
-
-type Session = NonNullable<Awaited<ReturnType<typeof authClient.listSessions>>['data']>[number]
-
-const METHOD_LABELS: Record<string, string> = {
-  password: 'password',
-  'password+trusted-device': 'password on a trusted device',
-  'password+app': 'password + authenticator app',
-  'password+email-code': 'password + email code',
-  'password+backup-code': 'password + backup code',
-  google: 'Google',
-  github: 'GitHub',
-  'magic-link': 'magic link',
-  'email-link': 'email verification link',
-  app: 'authenticator app',
-  'email-code': 'email code',
-  'backup-code': 'backup code',
-}
 
 function describeEvent({ type, method }: AuthEvent): string {
   const via = method ? (METHOD_LABELS[method] ?? method) : ''
@@ -47,6 +34,10 @@ function describeEvent({ type, method }: AuthEvent): string {
       return `Sign-in method added: ${via}`
     case 'method_removed':
       return `Sign-in method removed: ${via}`
+    case 'new_device_alerts_on':
+      return 'Emails about sign-ins from a new browser turned on'
+    case 'new_device_alerts_off':
+      return 'Emails about sign-ins from a new browser turned off'
   }
 }
 
@@ -66,8 +57,8 @@ function timeAgo(date: string | Date): string {
 }
 
 /** "Was that me?": where you're signed in now, and what happened recently. */
-export function SecurityActivity({ currentSessionId }: { currentSessionId: string }) {
-  const [sessions, setSessions] = useState<Session[]>()
+export function SecurityActivity() {
+  const [sessions, setSessions] = useState<ActiveSession[]>()
   const [events, setEvents] = useState<AuthEvent[]>()
   const [error, setError] = useState<string>()
   const [version, setVersion] = useState(0)
@@ -75,12 +66,11 @@ export function SecurityActivity({ currentSessionId }: { currentSessionId: strin
   useEffect(() => {
     let ignore = false
     Promise.all([
-      authClient.listSessions(),
+      fetch('/api/sessions').then((response) => response.json() as Promise<ActiveSession[]>),
       fetch('/api/activity').then((response) => response.json() as Promise<AuthEvent[]>),
-    ]).then(([{ data, error }, activity]) => {
+    ]).then(([active, activity]) => {
       if (ignore) return
-      setSessions(data ?? [])
-      setError(error?.message)
+      setSessions(active)
       setEvents(activity)
     })
     return () => {
@@ -88,9 +78,9 @@ export function SecurityActivity({ currentSessionId }: { currentSessionId: strin
     }
   }, [version])
 
-  async function revoke(token: string) {
-    const { error } = await authClient.revokeSession({ token })
-    setError(error?.message)
+  async function revoke(id: string) {
+    const response = await fetch(`/api/sessions/${encodeURIComponent(id)}`, { method: 'DELETE' })
+    setError(response.ok ? undefined : 'That device could not be signed out. Please try again.')
     setVersion((n) => n + 1)
   }
 
@@ -102,7 +92,7 @@ export function SecurityActivity({ currentSessionId }: { currentSessionId: strin
 
   if (!sessions || !events) return <p>Loading activity...</p>
 
-  const others = sessions.filter((s) => s.id !== currentSessionId)
+  const others = sessions.filter((s) => !s.current)
 
   return (
     <>
@@ -111,11 +101,11 @@ export function SecurityActivity({ currentSessionId }: { currentSessionId: strin
         <ul>
           {sessions.map((s) => (
             <li key={s.id}>
-              <strong>{describeDevice(s.userAgent)}</strong>, signed in {timeAgo(s.createdAt)}{' '}
-              {s.id === currentSessionId ? (
+              <strong>{s.device}</strong>, signed in {timeAgo(s.createdAt)}{' '}
+              {s.current ? (
                 '(this device)'
               ) : (
-                <button onClick={() => revoke(s.token)}>Sign out</button>
+                <button onClick={() => revoke(s.id)}>Sign out</button>
               )}
             </li>
           ))}

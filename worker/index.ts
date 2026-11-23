@@ -1,10 +1,12 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { Hono } from "hono";
-import type { AuthEvent } from "../shared/auth-events";
+import type { ActiveSession, AuthEvent } from "../shared/auth-events";
+import { describeDevice } from "../shared/device";
 import { auth } from "./auth";
-import { deleteOldAuthEvents } from "./auth-events";
+import { deleteOldAuthEvents, recordAuthEvent } from "./auth-events";
 import { db } from "./db";
-import { authEvent } from "./db/schema";
+import { authEvent, session } from "./db/schema";
+import { deleteStaleKnownDevices } from "./known-devices";
 import { hasAuthenticatorApp } from "./two-factor";
 
 const app = new Hono<{ Bindings: Env }>()
@@ -17,6 +19,38 @@ const app = new Hono<{ Bindings: Env }>()
     if (!session.user.twoFactorEnabled) return c.json({ method: null });
     const method = (await hasAuthenticatorApp(session.user.id)) ? "app" : "email";
     return c.json({ method });
+  })
+  // "Where you're signed in". Better-Auth's /list-sessions also returns each
+  // session's token, which is a key to the account, so it refuses sessions
+  // older than a day. This list has no tokens and works for any session.
+  .get("/sessions", async (c) => {
+    const current = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (!current) return c.json({ error: "Not signed in" }, 401);
+    const rows = await db
+      .select({ id: session.id, userAgent: session.userAgent, createdAt: session.createdAt })
+      .from(session)
+      .where(and(eq(session.userId, current.user.id), gt(session.expiresAt, new Date())))
+      .orderBy(desc(session.createdAt));
+    const sessions: ActiveSession[] = rows.map((row) => ({
+      id: row.id,
+      device: describeDevice(row.userAgent),
+      createdAt: row.createdAt.toISOString(),
+      current: row.id === current.session.id,
+    }));
+    return c.json(sessions);
+  })
+  // Signs out one of your other browsers, by ID instead of token.
+  .delete("/sessions/:id", async (c) => {
+    const current = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (!current) return c.json({ error: "Not signed in" }, 401);
+    // Matching the user too: an ID of someone else's session deletes nothing.
+    const deleted = await db
+      .delete(session)
+      .where(and(eq(session.id, c.req.param("id")), eq(session.userId, current.user.id)))
+      .returning({ id: session.id });
+    if (deleted.length === 0) return c.json({ error: "Not found" }, 404);
+    recordAuthEvent(current.user.id, "sessions_revoked", "one", c.req.raw);
+    return c.json({ status: true });
   })
   // "Recent activity": the signed-in user's own security log, newest first.
   .get("/activity", async (c) => {
@@ -50,8 +84,9 @@ export type AppType = typeof app;
 
 export default {
   fetch: app.fetch,
-  // Daily cron trigger (wrangler.jsonc): enforce the retention period.
+  // Daily cron trigger (wrangler.jsonc): enforce the retention periods.
   scheduled: async () => {
     await deleteOldAuthEvents();
+    await deleteStaleKnownDevices();
   },
 } satisfies ExportedHandler<Env>;

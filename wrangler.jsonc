@@ -26,7 +26,7 @@
 			"migrations_dir": "worker/db/migrations"
 		}
 	],
-	// Daily at 03:00 UTC: delete auth events past the retention period.
+	// Daily at 03:00 UTC: delete auth events and known devices past their retention.
 	"triggers": {
 		"crons": ["0 3 * * *"]
 	},

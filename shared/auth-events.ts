@@ -16,12 +16,38 @@ export type AuthEventType =
   | 'two_factor_disabled'
   | 'method_added'
   | 'method_removed'
+  | 'new_device_alerts_on'
+  | 'new_device_alerts_off'
 
 /**
  * How it happened, e.g. 'password+app', 'google', 'magic-link', or for
  * sessions_revoked 'one' / 'others'.
  */
 export type AuthEventMethod = string
+
+/** How a method reads in a sentence: "Signed in with {label}". */
+export const METHOD_LABELS: Record<AuthEventMethod, string> = {
+  password: 'password',
+  'password+trusted-device': 'password on a trusted device',
+  'password+app': 'password + authenticator app',
+  'password+email-code': 'password + email code',
+  'password+backup-code': 'password + backup code',
+  google: 'Google',
+  github: 'GitHub',
+  'magic-link': 'magic link',
+  'email-link': 'email verification link',
+  app: 'authenticator app',
+  'email-code': 'email code',
+  'backup-code': 'backup code',
+}
+
+/** What GET /api/sessions returns: one per signed-in browser, no tokens. */
+export type ActiveSession = {
+  id: string
+  device: string
+  createdAt: string
+  current: boolean
+}
 
 /** What GET /api/activity returns. */
 export type AuthEvent = {

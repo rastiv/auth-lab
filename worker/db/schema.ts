@@ -2,3 +2,4 @@
 export * from "./auth-schema";
 // Tables of our own.
 export * from "./auth-event-schema";
+export * from "./known-device-schema";

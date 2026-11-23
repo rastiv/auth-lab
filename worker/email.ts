@@ -79,6 +79,48 @@ If it wasn't, someone may have access to your account: reset your password right
   };
 }
 
+export type NewDeviceSignIn = {
+  /** Already a label, e.g. "Google" or "password + authenticator app". */
+  method: string;
+  device: string;
+  /** "Sofia, BG · Vivacom Bulgaria EAD", or empty when unknown. */
+  location: string;
+  when: Date;
+  /** Google or GitHub, when the sign-in went through one. */
+  provider?: string;
+};
+
+export function newDeviceEmail(appUrl: string, signIn: NewDeviceSignIn): Omit<Email, "to"> {
+  const when = `${new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(signIn.when)} UTC`;
+  const details = [
+    ["Device", signIn.device],
+    ["Location (approximate)", signIn.location || "unknown"],
+    ["Signed in with", signIn.method],
+    ["Time", when],
+  ];
+  // With Google or GitHub, the way in was that account, not our password.
+  const secure = signIn.provider
+    ? `secure your ${signIn.provider} account`
+    : "change your password";
+  const advice = (link: string) =>
+    `sign in at ${link}, ${secure}, and choose "Sign out everywhere else" under "Where you're signed in".`;
+  return {
+    subject: `New sign-in to auth-lab from ${signIn.device}`,
+    text: `Your auth-lab account was just signed in to from a browser it hasn't been used on before.
+
+${details.map(([label, value]) => `${label}: ${value}`).join("\n")}
+
+If this was you, there's nothing to do. You'll also get this after clearing cookies or in a private window.
+
+If it wasn't, someone may have access to your account: ${advice(appUrl)}`,
+    html: `<p>Your auth-lab account was just signed in to from a browser it hasn't been used on before.</p><p>${details.map(([label, value]) => `${label}: <strong>${escapeHtml(value)}</strong>`).join("<br>")}</p><p>If this was you, there's nothing to do. You'll also get this after clearing cookies or in a private window.</p><p><strong>If it wasn't</strong>, someone may have access to your account: ${advice(`<a href="${escapeHtml(appUrl)}">auth-lab</a>`)}</p>`,
+  };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")

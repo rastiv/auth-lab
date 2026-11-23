@@ -7,9 +7,8 @@ This file provides guidance to Claude Code when working in this repository.
 **auth-lab** is a live, interactive demo of authentication and authorization methods, hosted at **https://auth.rastiv.dev**. It is a portfolio project. The aim is to show senior-level judgment: every method works for real, and the UI explains what happens under the hood (cookies, sessions, 2FA challenge) and why each trade-off was made.
 
 Scope:
-- **Authentication:** email + password (with email verification), magic link, Google, GitHub, passkeys (WebAuthn); login with and without TOTP 2FA.
-- **Authorization:** simple roles (USER, MODERATOR, ADMIN) and a small admin panel showing who can do what.
-- **Out of scope:** e-commerce features (products, orders) and anything with running costs (e.g. SMS 2FA).
+- **Authentication only:** email + password (with email verification), magic link, Google, GitHub; 2FA with an authenticator app (TOTP) or, as the weaker option, a code by email; account activity log and active sessions.
+- **Out of scope:** authorization (roles, admin panel, RBAC/ABAC; shelved 2026-11-23, see `git stash list`), passkeys (tried twice and dropped as too confusing for ordinary users; the user may revisit them), e-commerce features (products, orders) and anything with running costs (e.g. SMS 2FA).
 
 ## Decided stack
 
@@ -56,8 +55,8 @@ A pnpm-workspace monorepo was deliberately rejected: there is a single deployabl
 1. **Prototype:** scaffold, Better-Auth + D1 + Drizzle, email/password sign-up + sign-in with PBKDF2; measure CPU time.
 2. Email verification + magic link (Resend), Turnstile.
 3. Google + GitHub OAuth, account linking.
-4. TOTP 2FA (+ backup codes), passkeys.
-5. Roles + admin panel.
+4. TOTP 2FA (+ backup codes), email codes as a weaker 2FA option.
+5. Account activity log and active sessions (replaced "roles + admin panel").
 6. "Under the hood" explainer UI, auto-cleanup of demo accounts (e.g. after 24 h), rate limiting.
 7. Tests, GitHub Actions CI, deploy to `auth.rastiv.dev`, README.
 
